@@ -37,7 +37,7 @@ void Sub::althold_run()
     pos_control.set_max_accel_z(g.pilot_accel_z);
 
     if (!motors.armed()) {
-        motors.set_desired_spool_state(AP_Motors::DESIRED_GROUND_IDLE);
+        motors.set_desired_spool_state(AP_Motors::DesiredSpoolState::GROUND_IDLE);
         // Sub vehicles do not stabilize roll/pitch/yaw when not auto-armed (i.e. on the ground, pilot has never raised throttle)
         attitude_control.set_throttle_out(0,true,g.throttle_filt);
         attitude_control.relax_attitude_controllers();
@@ -46,7 +46,7 @@ void Sub::althold_run()
         return;
     }
 
-    motors.set_desired_spool_state(AP_Motors::DESIRED_THROTTLE_UNLIMITED);
+    motors.set_desired_spool_state(AP_Motors::DesiredSpoolState::THROTTLE_UNLIMITED);
 
     // get pilot desired lean angles
     float target_roll, target_pitch;
@@ -96,6 +96,13 @@ void Sub::althold_run()
         }
     }
 
+    control_depth();
+
+    motors.set_forward(channel_forward->norm_input());
+    motors.set_lateral(channel_lateral->norm_input());
+}
+
+void Sub::control_depth() {
     // Hold actual position until zero derivative is detected
     static bool engageStopZ = true;
     // Get last user velocity direction to check for zero derivative points
@@ -112,10 +119,6 @@ void Sub::althold_run()
         if (ap.at_bottom) {
             pos_control.relax_alt_hold_controllers(); // clear velocity and position targets
             pos_control.set_alt_target(inertial_nav.get_altitude() + 10.0f); // set target to 10 cm above bottom
-        } else if (rangefinder_alt_ok()) {
-            // if rangefinder is ok, use surface tracking
-            float target_climb_rate = get_surface_tracking_climb_rate(0, pos_control.get_alt_target(), G_Dt);
-            pos_control.set_alt_target_from_climb_rate_ff(target_climb_rate, G_Dt, false);
         }
 
         // Detects a zero derivative
@@ -129,7 +132,4 @@ void Sub::althold_run()
 
         pos_control.update_z_controller();
     }
-
-    motors.set_forward(channel_forward->norm_input());
-    motors.set_lateral(channel_lateral->norm_input());
 }

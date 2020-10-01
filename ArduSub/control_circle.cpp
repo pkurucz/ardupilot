@@ -41,7 +41,7 @@ void Sub::circle_run()
     // if not armed set throttle to zero and exit immediately
     if (!motors.armed()) {
         // To-Do: add some initialisation of position controllers
-        motors.set_desired_spool_state(AP_Motors::DESIRED_GROUND_IDLE);
+        motors.set_desired_spool_state(AP_Motors::DesiredSpoolState::GROUND_IDLE);
         // Sub vehicles do not stabilize roll/pitch/yaw when disarmed
         attitude_control.set_throttle_out(0,true,g.throttle_filt);
         attitude_control.relax_attitude_controllers();
@@ -60,10 +60,10 @@ void Sub::circle_run()
     target_climb_rate = get_pilot_desired_climb_rate(channel_throttle->get_control_in());
 
     // set motors to full range
-    motors.set_desired_spool_state(AP_Motors::DESIRED_THROTTLE_UNLIMITED);
+    motors.set_desired_spool_state(AP_Motors::DesiredSpoolState::THROTTLE_UNLIMITED);
 
     // run circle controller
-    circle_nav.update();
+    failsafe_terrain_set_status(circle_nav.update());
 
     ///////////////////////
     // update xy outputs //
@@ -82,11 +82,6 @@ void Sub::circle_run()
         attitude_control.input_euler_angle_roll_pitch_yaw(channel_roll->get_control_in(), channel_pitch->get_control_in(), circle_nav.get_yaw(), true);
     }
 
-    // adjust climb rate using rangefinder
-    if (rangefinder_alt_ok()) {
-        // if rangefinder is ok, use surface tracking
-        target_climb_rate = get_surface_tracking_climb_rate(target_climb_rate, pos_control.get_alt_target(), G_Dt);
-    }
     // update altitude target and call position controller
     pos_control.set_alt_target_from_climb_rate(target_climb_rate, G_Dt, false);
     pos_control.update_z_controller();

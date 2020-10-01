@@ -46,8 +46,6 @@
  #define HIL_MODE        HIL_MODE_DISABLED
 #endif
 
-#define MAGNETOMETER ENABLED
-
 #ifndef ARMING_DELAY_SEC
     # define ARMING_DELAY_SEC 2.0f
 #endif
@@ -64,9 +62,7 @@
 #if FRAME_CONFIG == HELI_FRAME
   # define RC_FAST_SPEED                        125
   # define WP_YAW_BEHAVIOR_DEFAULT              WP_YAW_BEHAVIOR_LOOK_AHEAD
-  # define THR_MIN_DEFAULT                      0
   # define AUTOTUNE_ENABLED                     DISABLED
-  # define ACCEL_Z_P                            0.30f
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -88,16 +84,20 @@
  # define RANGEFINDER_HEALTH_MAX 3          // number of good reads that indicates a healthy rangefinder
 #endif
 
+#ifndef RANGEFINDER_TIMEOUT_MS
+# define RANGEFINDER_TIMEOUT_MS 1000        // rangefinder filter reset if no updates from sensor in 1 second
+#endif
+
 #ifndef RANGEFINDER_GAIN_DEFAULT
  # define RANGEFINDER_GAIN_DEFAULT 0.8f     // gain for controlling how quickly rangefinder range adjusts target altitude (lower means slower reaction)
 #endif
 
-#ifndef THR_SURFACE_TRACKING_VELZ_MAX
- # define THR_SURFACE_TRACKING_VELZ_MAX 150 // max vertical speed change while surface tracking with rangefinder
+#ifndef SURFACE_TRACKING_VELZ_MAX
+ # define SURFACE_TRACKING_VELZ_MAX 150     // max vertical speed change while surface tracking with rangefinder
 #endif
 
-#ifndef RANGEFINDER_TIMEOUT_MS
- # define RANGEFINDER_TIMEOUT_MS  1000      // desired rangefinder alt will reset to current rangefinder alt after this many milliseconds without a good rangefinder alt
+#ifndef SURFACE_TRACKING_TIMEOUT_MS
+ # define SURFACE_TRACKING_TIMEOUT_MS  1000 // surface tracking target alt will reset to current rangefinder alt after this many milliseconds without a good rangefinder alt
 #endif
 
 #ifndef RANGEFINDER_WPNAV_FILT_HZ
@@ -189,12 +189,6 @@
  # define EKF_ORIGIN_MAX_DIST_M         50000   // EKF origin and waypoints (including home) must be within 50km
 #endif
 
-//////////////////////////////////////////////////////////////////////////////
-//  MAGNETOMETER
-#ifndef MAGNETOMETER
- # define MAGNETOMETER                   ENABLED
-#endif
-
 #ifndef COMPASS_CAL_STICK_GESTURE_TIME
  #define COMPASS_CAL_STICK_GESTURE_TIME 2.0f // 2 seconds
 #endif
@@ -203,12 +197,9 @@
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
-//  OPTICAL_FLOW & VISUAL ODOMETRY
+//  OPTICAL_FLOW
 #ifndef OPTFLOW
  # define OPTFLOW       ENABLED
-#endif
-#ifndef VISUAL_ODOMETRY_ENABLED
-# define VISUAL_ODOMETRY_ENABLED !HAL_MINIMIZE_FEATURES
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -220,7 +211,7 @@
 //////////////////////////////////////////////////////////////////////////////
 //  Crop Sprayer - enabled only on larger firmwares
 #ifndef SPRAYER_ENABLED
- # define SPRAYER_ENABLED  !HAL_MINIMIZE_FEATURES
+ # define SPRAYER_ENABLED  HAL_SPRAYER_ENABLED
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -238,7 +229,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // winch support
 #ifndef WINCH_ENABLED
-# define WINCH_ENABLED DISABLED
+# define WINCH_ENABLED !HAL_MINIMIZE_FEATURES
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -250,13 +241,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // Parachute release
 #ifndef PARACHUTE
- # define PARACHUTE ENABLED
-#endif
-
-//////////////////////////////////////////////////////////////////////////////
-// ADSB support
-#ifndef ADSB_ENABLED
-# define ADSB_ENABLED !HAL_MINIMIZE_FEATURES
+ # define PARACHUTE HAL_PARACHUTE_ENABLED
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -350,6 +335,12 @@
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
+// System ID - conduct system identification tests on vehicle
+#ifndef MODE_SYSTEMID_ENABLED
+# define MODE_SYSTEMID_ENABLED !HAL_MINIMIZE_FEATURES
+#endif
+
+//////////////////////////////////////////////////////////////////////////////
 // Throw - fly vehicle after throwing it in the air
 #ifndef MODE_THROW_ENABLED
 # define MODE_THROW_ENABLED ENABLED
@@ -362,9 +353,31 @@
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+// Autorotate - autonomous auto-rotation - helicopters only
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+    #if FRAME_CONFIG == HELI_FRAME
+        #ifndef MODE_AUTOROTATE_ENABLED
+        # define MODE_AUTOROTATE_ENABLED !HAL_MINIMIZE_FEATURES
+        #endif
+    #else
+        # define MODE_AUTOROTATE_ENABLED DISABLED
+    #endif
+#else
+    # define MODE_AUTOROTATE_ENABLED DISABLED
+#endif
+//////////////////////////////////////////////////////////////////////////////
+
 // Beacon support - support for local positioning systems
 #ifndef BEACON_ENABLED
 # define BEACON_ENABLED !HAL_MINIMIZE_FEATURES
+#endif
+
+//////////////////////////////////////////////////////////////////////////////
+// Button - Enable the button connected to AUX1-6
+#ifndef BUTTON_ENABLED
+ # define BUTTON_ENABLED ENABLED
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -378,22 +391,22 @@
 //
 
 #ifndef FLIGHT_MODE_1
- # define FLIGHT_MODE_1                  STABILIZE
+ # define FLIGHT_MODE_1                  Mode::Number::STABILIZE
 #endif
 #ifndef FLIGHT_MODE_2
- # define FLIGHT_MODE_2                  STABILIZE
+ # define FLIGHT_MODE_2                  Mode::Number::STABILIZE
 #endif
 #ifndef FLIGHT_MODE_3
- # define FLIGHT_MODE_3                  STABILIZE
+ # define FLIGHT_MODE_3                  Mode::Number::STABILIZE
 #endif
 #ifndef FLIGHT_MODE_4
- # define FLIGHT_MODE_4                  STABILIZE
+ # define FLIGHT_MODE_4                  Mode::Number::STABILIZE
 #endif
 #ifndef FLIGHT_MODE_5
- # define FLIGHT_MODE_5                  STABILIZE
+ # define FLIGHT_MODE_5                  Mode::Number::STABILIZE
 #endif
 #ifndef FLIGHT_MODE_6
- # define FLIGHT_MODE_6                  STABILIZE
+ # define FLIGHT_MODE_6                  Mode::Number::STABILIZE
 #endif
 
 
@@ -455,14 +468,6 @@
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
-// MOUNT (ANTENNA OR CAMERA)
-//
-#ifndef MOUNT
- # define MOUNT         ENABLED
-#endif
-
-
-//////////////////////////////////////////////////////////////////////////////
 // Flight mode definitions
 //
 
@@ -505,7 +510,7 @@
 #endif
 
 #ifndef RTL_ALT
- # define RTL_ALT 				    1500    // default alt to return to home in cm, 0 = Maintain current altitude
+ # define RTL_ALT                   1500    // default alt to return to home in cm, 0 = Maintain current altitude
 #endif
 
 #ifndef RTL_ALT_MIN
@@ -673,6 +678,10 @@
  #define AC_AVOID_ENABLED   ENABLED
 #endif
 
+#ifndef AC_OAPATHPLANNER_ENABLED
+ #define AC_OAPATHPLANNER_ENABLED   !HAL_MINIMIZE_FEATURES
+#endif
+
 #if AC_AVOID_ENABLED && !PROXIMITY_ENABLED
   #error AC_Avoidance relies on PROXIMITY_ENABLED which is disabled
 #endif
@@ -708,12 +717,16 @@
   #error SmartRTL requires ModeRTL which is disabled
 #endif
 
-#if ADSB_ENABLED && !MODE_GUIDED_ENABLED
+#if HAL_ADSB_ENABLED && !MODE_GUIDED_ENABLED
   #error ADSB requires ModeGuided which is disabled
 #endif
 
 #if MODE_FOLLOW_ENABLED && !MODE_GUIDED_ENABLED
   #error Follow requires ModeGuided which is disabled
+#endif
+
+#if MODE_GUIDED_NOGPS_ENABLED && !MODE_GUIDED_ENABLED
+  #error ModeGuided-NoGPS requires ModeGuided which is disabled
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -743,14 +756,6 @@
 
 #ifndef STATS_ENABLED
  # define STATS_ENABLED ENABLED
-#endif
-
-#ifndef DEVO_TELEM_ENABLED
-#if HAL_MINIMIZE_FEATURES
- #define DEVO_TELEM_ENABLED DISABLED
-#else
- #define DEVO_TELEM_ENABLED ENABLED
-#endif
 #endif
 
 #ifndef OSD_ENABLED

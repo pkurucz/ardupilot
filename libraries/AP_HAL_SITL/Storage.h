@@ -38,7 +38,7 @@ private:
     void _save_backup(void);
     void _mark_dirty(uint16_t loc, uint16_t length);
     uint8_t _buffer[HAL_STORAGE_SIZE] __attribute__((aligned(4)));
-    Bitmask _dirty_mask{STORAGE_NUM_LINES};
+    Bitmask<STORAGE_NUM_LINES> _dirty_mask;
 
 #if STORAGE_USE_FLASH
     bool _flash_write_data(uint8_t sector, uint32_t offset, const uint8_t *data, uint16_t length);
@@ -53,7 +53,7 @@ private:
 
 #if STORAGE_USE_FLASH
     AP_FlashStorage _flash{_buffer,
-            HAL_STORAGE_SIZE,
+            HAL_FLASH_SECTOR_SIZE,
             FUNCTOR_BIND_MEMBER(&Storage::_flash_write_data, bool, uint8_t, uint32_t, const uint8_t *, uint16_t),
             FUNCTOR_BIND_MEMBER(&Storage::_flash_read_data, bool, uint8_t, uint32_t, uint8_t *, uint16_t),
             FUNCTOR_BIND_MEMBER(&Storage::_flash_erase_sector, bool, uint8_t),
