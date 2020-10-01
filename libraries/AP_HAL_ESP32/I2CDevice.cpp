@@ -34,8 +34,8 @@ I2CDeviceManager::I2CDeviceManager(void)
         i2c_config_t i2c_bus_config = {
             .mode = I2C_MODE_MASTER,
             .sda_io_num = i2c_bus_desc[i].sda,
-            .sda_pullup_en = GPIO_PULLUP_ENABLE,
             .scl_io_num = i2c_bus_desc[i].scl,
+            .sda_pullup_en = GPIO_PULLUP_ENABLE,
             .scl_pullup_en = GPIO_PULLUP_ENABLE,
             i2c_bus_desc[i].speed
         };

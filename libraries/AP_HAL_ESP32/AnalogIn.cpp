@@ -29,6 +29,7 @@
 #if HAL_USE_ADC == TRUE && !defined(HAL_DISABLE_ADC_DRIVER)
 
 #include "AnalogIn.h"
+#include "soc/adc_channel.h"
 
 #ifndef ESP32_ADC_MAVLINK_DEBUG
 // this allows the first 6 analog channels to be reported by mavlink for debugging purposes
